@@ -3,6 +3,7 @@ import morgan from "morgan";
 import cors from "cors";
 import { dirname } from "path";
 import { fileURLToPath } from "url"; 
+import "../database/db.js"
 
 class Server {
     constructor() {
