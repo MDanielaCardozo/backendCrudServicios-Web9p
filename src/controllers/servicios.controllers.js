@@ -3,3 +3,4 @@ export const prueba = (req, res) => {
     res.status(200).json({mensaje: "Primer controlador exitoso"})
 };
 
+
