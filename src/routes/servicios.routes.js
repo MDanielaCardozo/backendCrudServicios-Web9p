@@ -1,10 +1,11 @@
 import { Router } from "express"
 import { borrarServicio, crearServicio, editarServicio, listarServicios, prueba, servicioBuscado } from "../controllers/servicios.controllers.js";
+import reglasServicio from "../middleware/validarServicio.js";
 
 const router = Router();
 
 //router.route("/test").get(prueba)
-router.route("/").post(crearServicio).get(listarServicios)
-router.route("/:id").get(servicioBuscado).delete(borrarServicio).put(editarServicio)
+router.route("/").post(reglasServicio, crearServicio).get(listarServicios)
+router.route("/:id").get(servicioBuscado).delete(borrarServicio).put(reglasServicio, editarServicio)
 
 export default router
