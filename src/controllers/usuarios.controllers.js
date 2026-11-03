@@ -64,3 +64,85 @@ export const registrarUsuario = async (req, res) => {
     res.status(500).json({ mensaje: "Error al registrar un usuario" });
   }
 };
+
+export const verificarRegistro = async (req, res) => {
+  try {
+    const {email, codigo} = req.body
+    //1- buscar al usuario que contiene ese mail
+    const usuario = await Usuario.findOne({email})
+    if(!usuario){
+      return res.status(404).json({mensaje: "No se encontro ningun usuario con el email enviado."})
+    }
+    //2- verificar si el usuario ya fue verificado
+    if (usuario.isVerified) {
+      return res.status(400).json({mensaje: "Esta cuenta ya fue verificada"})
+    }
+    //3-verificar que el codigo siga vigente
+    if( new Date() > usuario.verificationExpires){
+      return res.status(400).json({mensaje: "El codigo de verificacion ha sido expirado, debe solicitar un codigo nuevo"})
+    }
+    //4-verficar si el codigo enviado es correcto
+    if (usuario.verificationCode !== codigo) {
+      return res.status(400).json({mensaje: "El codigo enviado es incorrecto"})
+    }
+    //verificar el codigo del usuario 
+    await Usuario.findByIdAndUpdate(usuario._id, {
+      $set:{isVerified: true}, //modificando la propiedad del documento
+      $unset:{verificationCode: 1, verificationExpires: 1} //aqui quito estas dos propiedades del documento
+    })
+    res.status(200).json({mensaje: "Cuenta verificada con exito ya puedes iniciar sesion"})
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({mensaje: "No se pudo verificar la cuenta del usuario"})
+  }
+}
+
+export const solicitarNuevoCodigo = async(req, res)=>{
+  try {
+    const {email} = req.body
+    //1- Validar si existe este email
+    const usuarioBuscado = await Usuario.findOne({email});
+    if (!usuarioBuscado) {
+      return res.status(404).json({mensaje: 'No se encontro un usuario con este email'})
+    }
+    //2 - validar que el codigo aun no este verficado
+    if (usuarioBuscado.isVerified) {
+      return res.status(400).json({mensaje: "Esta cuenta ya fue verificada"})
+    }
+    //3- aqui creamos el nuevo codigo y la fecha de exp
+     const codigoVerificacion = Math.floor(
+      100000 + Math.random() * 999999,
+    ).toString();
+    const tiempoExpiracion = new Date(Date.now() + 15 * 60 * 1000);
+
+    //actualizar al usuario con su nuevo codigo y fecha de exp
+    await Usuario.findByIdAndUpdate(usuarioBuscado._id, {verificationCode: codigoVerificacion, verificationExpires: tiempoExpiracion})
+
+    //4-volver a enviar el email
+    await transporter.sendMail({
+      from: '"Crud Servicios" <no-reply@crud-servicios.com>',
+      to: usuarioBuscado.email,
+      subject: "🔑 Nuevo código de verificación de cuenta",
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 5px;">
+          <h2 style="color: #333; text-align: center;">¡Hola, ${usuarioBuscado.nombre}!</h2>
+          <p style="color: #666; font-size: 16px; line-height: 1.5;">
+          Has solicitado un nuevo código de verificación. Utiliza los siguientes 6 dígitos para activar tu cuenta:
+          </p>
+          <div style="background-color: #f4f4f4; padding: 15px; text-align: center; font-size: 24px; font-weight: bold; letter-spacing: 5px; margin: 20px 0; border-radius: 4px; color: #007bff;">
+           ${codigoVerificacion}
+          </div>
+          <p style="color: #9; font-size: 12px; text-align: center;">
+            Este código vencerá en 15 minutos. Si no solicitaste este código, puedes ignorar este correo.
+          </p>
+        </div>
+      `,
+    })
+
+    res.status(200).json({mensaje: "Nuevo codigo generado y enviado con exito. Revisa tu email"})
+
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({mensaje: "Ocurrio un error al intentar generar un nuevo codigo de verificacion"})
+  }
+}
