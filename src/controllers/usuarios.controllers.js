@@ -1,5 +1,7 @@
+import jwt from "jsonwebtoken";
 import Usuario from "../models/usuario.js";
 import transporter from "../utils/mailer.js";
+import bcrypt from "bcryptjs";
 
 export const registrarUsuario = async (req, res) => {
   try {
@@ -144,5 +146,52 @@ export const solicitarNuevoCodigo = async(req, res)=>{
   } catch (error) {
     console.error(error)
     res.status(500).json({mensaje: "Ocurrio un error al intentar generar un nuevo codigo de verificacion"})
+  }
+}
+
+export const login = async(req, res) => {
+  try {
+    const { email, password } = req.body;
+    //1- verificar su email
+    const usuarioBuscado = await Usuario.findOne({ email });
+    if(!usuarioBuscado) {
+      return res.status(401).json({ mensaje: "Credenciales invalidas"});
+    }
+    //2- Verificar el password
+    if(!(await bcrypt.compare(password, usuarioBuscado.password))) {
+      return res.status(401).json({ mensaje: "Credenciales invalidas"});
+    }
+    //3- chequear si el codigo de verficacion es valido
+    if (!usuarioBuscado.isVerified) {
+      return res.status(403).json({ mensaje: "La cuenta no fue verificada aun"})
+    }
+
+    //4- Generar el token de JWT
+    const token = jwt.sign(
+      {id: usuarioBuscado._id, rol: usuarioBuscado.rol}, process.env.JWT_SECRET,
+      {
+        expiresIn: "1h",
+      },
+    );
+
+       res.cookie("token", token, {
+        //esto solo se va a transaccionar entre el backend y el navegador
+        httpOnly: true,
+        //en que contexto se va a enviar esta cookie
+        secure: process.env.NODE_ENV === "produccion" ,
+        //dominios
+        samesite: "strict",
+        //tiempo que se vence el token milesimas de seg
+        maxAge: 3600000
+             })
+    
+        res.status(200).json({
+          mensaje: "Login exitoso",
+          nombre: usuarioBuscado.nombre
+        })     
+    
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({mensaje: "Ocurrio un error al loguear al usuario"})
   }
 }
