@@ -195,3 +195,17 @@ export const login = async(req, res) => {
     res.status(500).json({mensaje: "Ocurrio un error al loguear al usuario"})
   }
 }
+
+export const obtenerPerfil = async(req, res) => {
+  try {
+    //buscar el perfil logueado
+    const usuarioBuscado = await Usuario.findById(req.user.id).select("-password -isVerified -createdAt -updatedAt")
+    if(!usuarioBuscado){
+      return res.status(404).json({mensaje: "Usuario no encontrado"})
+    }
+    res.status(200).json(usuarioBuscado)
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({mensaje: "Ocurrio un error al obtener el perfil del usuario"})
+  }
+}

@@ -4,6 +4,7 @@ import cors from "cors";
 import { dirname } from "path";
 import { fileURLToPath } from "url"; 
 import "../database/db.js"
+import cookieParser from "cookie-parser";
 
 class Server {
     constructor() {
@@ -18,6 +19,7 @@ class Server {
         this.app.use(morgan("dev"))//muestra por terminal las peticiones, comunicacion HTTP
         this.app.use(express.json())//podemos leer los datos en formato JSON que llegan en el BODY del request
         //configurando un archivo estatico
+        this.app.use(cookieParser())
         const __dirname = dirname(fileURLToPath(import.meta.url))
         console.info(__dirname + "/../../public");
         this.app.use(express.static(__dirname + "/../../public")) //configuramos un archivo estatico
