@@ -1,8 +1,9 @@
-import { body } from "express-validator";
-import Servicio from "../models/servicio.js";
+import { body, param } from "express-validator";
 import resultadoValidacion from "./resultadoValidacion.js";
+import Servicio from "../models/servicio.js";
+import Categoria from "../models/categoria.js";
 
-const reglasServicio = [
+export const reglasServicio = [
     body("nombreServicio")
     .isString()
     .withMessage("El nombre del servicio debe ser un string")
@@ -39,10 +40,15 @@ const reglasServicio = [
     body("categoria")
     .notEmpty()
     .withMessage("La categoria es un dato obligatorio")
-    .isString()
-    .withMessage("La categoria debe ser un string")
-    .isIn(["Desarrollo Web", "Backend & API", "Consultoria"])
-    .withMessage('La categoría debe ser una de las siguientes opciones: "Desarrollo Web", "Backend & API", "Consultoria"'),
+    .isMongoId()
+    .withMessage("La categoría debe ser un id válido")
+    .custom(async (valor) => {
+      const categoriaExistente = await Categoria.findById(valor);
+      if (!categoriaExistente) {
+        throw new Error("La categoría no existe en la base de datos");
+      }
+      return true;
+    }),
     body("descripcion")
     .notEmpty()
     .withMessage("La descripcion es un dato obligatorio")
@@ -65,4 +71,9 @@ const reglasServicio = [
     resultadoValidacion,
 ];
 
-export default reglasServicio;
+export const validarID = [
+  param("id")
+    .isMongoId()
+    .withMessage("El id enviado no tiene el formato esperado"),
+    resultadoValidacion
+];

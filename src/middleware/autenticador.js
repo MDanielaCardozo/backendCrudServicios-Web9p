@@ -17,3 +17,16 @@ export const autenticador =(req, res, next) =>{
         res.status(403).json({ mensaje: "Acceso denegado: Token invalido o expirado"})
     }
 }
+
+// verificar rutas de admin
+export const esAdmin = (req, res, next) =>{
+    try {
+        if(!req.user || req.user.rol !== 'admin'){
+            return res.status(403).json({mensaje: 'Acceso denegado: no tiene permisos suficientes' })
+        }
+        next();
+
+    } catch (error) {
+        console.error(500).json({mensaje:'Ocurrio un error al verificar el rol del usuario'})
+    }
+}
